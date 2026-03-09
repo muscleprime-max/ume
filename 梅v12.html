@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplement Oracle v11.6 | Light Edition</title>
+    <style>
+        :root {
+            --primary: #334155; --accent: #64748b; --success: #10b981;
+            --warning: #f59e0b; --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff;
+            --lane-a: #ecfdf5; --lane-a-border: #059669;
+            --lane-b: #fff7ed; --lane-b-border: #f97316;
+            --lane-c: #f1f5f9; --lane-c-text: #64748b;
+            --tab-active-bg: #e2e8f0; --tab-active-text: #0f172a;
+        }
+
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { background: var(--bg); color: var(--primary); padding: 15px; line-height: 1.6; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; background: var(--card); padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+
+        /* Header (Fixed for Light Version) */
+        h1 { text-align: center; margin-bottom: 0.2rem; font-size: 1.6rem; color: var(--primary); letter-spacing: 1px; }
+        .subtitle { text-align: center; color: #94a3b8; font-size: 0.85rem; margin-bottom: 2rem; }
+        
+        /* Inputs */
+        .section-title { font-size: 1.1rem; border-left: 5px solid var(--accent); padding-left: 12px; margin: 30px 0 15px; font-weight: bold; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        label { display: block; font-size: 0.75rem; font-weight: bold; color: #64748b; margin-bottom: 5px; }
+        select, input[type="text"], input[type="number"] { width: 100%; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 0.95rem; }
+
+        /* Check Cards */
+        .pain-grid, .safety-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+        .check-card { background: #f8fafc; padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.8rem; border: 2px solid transparent; transition: 0.2s; user-select: none; }
+        .check-card:hover { background: #e2e8f0; }
+        .check-card:has(input:checked) { border-color: var(--accent); background: #f1f5f9; color: var(--primary); font-weight: bold; }
+        .check-card input { margin: 0; }
+
+        /* Tab System */
+        .tab-container { margin-bottom: 20px; }
+        .tabs { display: flex; overflow-x: auto; gap: 5px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 15px; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab-btn { padding: 8px 15px; border: none; background: none; font-size: 0.85rem; font-weight: bold; color: #64748b; cursor: pointer; white-space: nowrap; border-radius: 20px; transition: 0.2s; }
+        .tab-btn.active { background: var(--tab-active-bg); color: var(--tab-active-text); }
+        .tab-content { display: none; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: grid; }
+        .taken-card { font-size: 0.8rem; padding: 8px; background: #fff; border: 1px solid #e2e8f0; }
+        .taken-card:has(input:checked) { border-color: var(--success); background: #ecfdf5; color: var(--success); font-weight: bold; }
+
+        /* Advanced Settings */
+        .advanced-settings { margin-top: 15px; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+        .advanced-summary { padding: 10px 15px; background: #f8fafc; font-size: 0.8rem; cursor: pointer; font-weight: bold; color: #64748b; display: flex; justify-content: space-between; }
+        .advanced-content { padding: 15px; display: none; background: #fff; border-top: 1px solid #e2e8f0; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .advanced-content.show { display: grid; }
+
+        /* Actions */
+        .disclaimer-box { margin-top: 30px; padding: 15px; background: #fff7ed; border: 1px solid #ffedd5; border-radius: 8px; font-size: 0.85rem; color: #9a3412; }
+        .btn-analyze { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn-analyze:disabled { background: #cbd5e1; cursor: not-allowed; }
+        .btn-analyze:hover:not(:disabled) { background: #1e293b; transform: translateY(-2px); }
+
+        /* Results */
+        .result-area { margin-top: 40px; display: none; }
+        .report-tools { display: flex; gap: 10px; margin-bottom: 20px; justify-content: space-between; flex-wrap: wrap; }
+        .btn-tool { flex: 1; padding: 10px; font-size: 0.85rem; border-radius: 8px; cursor: pointer; font-weight: bold; border: 1px solid #cbd5e1; background: #fff; color: #475569; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-tool:hover { background: #f1f5f9; color: var(--primary); }
+
+        /* Timeline & Lanes */
+        .timeline { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 30px; background: #fff; }
+        .time-slot { display: flex; flex-direction: column; border-bottom: 1px solid #f1f5f9; }
+        @media (min-width: 600px) { .time-slot { flex-direction: row; } }
+        .time-label { width: 100%; background: #f8fafc; padding: 12px; font-size: 0.8rem; font-weight: bold; color: var(--primary); text-align: center; border-bottom: 1px solid #f1f5f9; }
+        @media (min-width: 600px) { .time-label { width: 140px; border-bottom: none; border-right: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: center; } }
+        .time-content { flex: 1; padding: 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+        .supp-pill { padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid; }
+        .pill-take { background: var(--lane-a); color: #047857; border-color: #a7f3d0; }
+        .pill-add { background: var(--lane-b); color: #c2410c; border-color: #fed7aa; }
+
+        .lane-container { margin-bottom: 30px; }
+        .lane-header { font-size: 1rem; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .lane-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; color: white; }
+        .lane-a-badge { background: var(--success); }
+        .lane-b-badge { background: #f97316; }
+        .lane-c-badge { background: #94a3b8; }
+
+        .detail-card { background: #fff; border: 1px solid #e2e8f0; padding: 15px; border-radius: 12px; margin-bottom: 15px; position: relative; }
+        .card-lane-a { border-left: 5px solid var(--success); }
+        .card-lane-b { border-left: 5px solid #f97316; }
+        .card-lane-c { border-left: 5px solid #cbd5e1; background: #f8fafc; opacity: 0.9; }
+        .detail-card.warning { border: 2px solid var(--danger); background: #fff5f5; }
+        
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .supp-name { font-weight: bold; font-size: 1rem; }
+        
+        /* SCORE BADGE */
+        .score-badge { 
+            font-size: 0.9rem; font-weight: 800; padding: 4px 10px; border-radius: 8px; color: white; min-width: 50px; text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .score-high { background: linear-gradient(135deg, #ef4444, #f87171); } 
+        .score-mid { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+        .score-low { background: #94a3b8; }
+
+        .info-row { font-size: 0.85rem; margin-bottom: 4px; display: flex; gap: 10px; align-items: baseline; }
+        .info-label { font-weight: bold; color: #64748b; font-size: 0.75rem; min-width: 60px; }
+        .reason-row { font-size: 0.75rem; color: #64748b; margin-top: 5px; background: rgba(0,0,0,0.02); padding: 4px 8px; border-radius: 4px; }
+        .warning-box { margin-top: 10px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-radius: 6px; color: var(--danger); font-size: 0.8rem; font-weight: bold; display: block; }
+        
+        /* Link Style */
+        .pubmed-link { display: inline-block; color: var(--accent); text-decoration: none; font-weight: bold; padding: 4px 0; }
+        .pubmed-link:hover { text-decoration: underline; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @media print {
+            body { background: #fff; }
+            .container { box-shadow: none; margin: 0; padding: 0; max-width: 100%; }
+            .grid-inputs, .pain-grid, .safety-grid, .tab-container, .advanced-settings, .btn-analyze, .disclaimer-box, .report-tools { display: none !important; }
+            .result-area { display: block !important; margin-top: 0; }
+            .detail-card { break-inside: avoid; border: 1px solid #ccc; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 id="appTitle">SUPPLEMENT ORACLE</h1>
+    <div class="subtitle" id="appSubtitle">Light</div>
+    
+    <div class="grid-inputs">
+        <div><label>性別</label><select id="gender"><option value="male">男性</option><option value="female">女性</option></select></div>
+        <div><label>体重 (kg)</label><input type="number" id="weight" value="70" min="30" max="150"></div>
+        <div><label>トレーニング歴</label><select id="history"><option value="beginner">1年未満 (初級)</option><option value="intermediate" selected>1-3年 (中級)</option><option value="advanced">3年以上 (上級)</option></select></div>
+        <div><label>目的</label><select id="goal"><option value="maintenance">健康維持</option><option value="bulking">増量・筋肥大</option><option value="cutting">減量・引き締め</option></select></div>
+    </div>
+
+    <div class="section-title">解決したい課題（複数選択）</div>
+    <div class="pain-grid" id="painGrid">
+        <label class="check-card"><input type="checkbox" name="pain" value="pump"> パンプ・血管拡張</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="s_plateau"> 筋力・重量停滞</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="fatigue"> 慢性疲労・回復</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="doms"> 筋肉痛が取れない</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="stress"> ストレス・集中力</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="sleep"> 睡眠の質・寝起き</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="w_plateau"> 脂肪燃焼・代謝</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="stomach"> 胃腸・消化吸収</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="joint"> 関節痛・怪我予防</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="hormone"> 活力・男性機能</label>
+        <label class="check-card"><input type="checkbox" name="pain" value="skin"> 肌荒れ・抗酸化</label>
+        <label class="check-card" style="border:1px solid #cbd5e1;"><input type="checkbox" name="pain" value="anemia"> 貧血・冷え性</label>
+    </div>
+
+    <div class="advanced-settings">
+        <div class="advanced-summary" onclick="document.getElementById('advContent').classList.toggle('show')">
+            <span>⚙️ 表示設定 (件数・閾値)</span><span>▼</span>
+        </div>
+        <div class="advanced-content" id="advContent">
+            <div><label>最大表示件数 (Lane B)</label><select id="maxDisplay"><option value="7">標準 (7件)</option><option value="10">多め (10件)</option><option value="99">全件表示</option></select></div>
+            <div><label>提案の厳格さ</label><select id="scoreThreshold"><option value="10">標準</option><option value="0">緩和 (全て表示)</option><option value="25">厳格</option></select></div>
+        </div>
+    </div>
+
+    <div class="section-title">現在摂取中のサプリ (Stack)</div>
+    <div class="tab-container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('base')">基本・健康</button>
+            <button class="tab-btn" onclick="switchTab('perf')">筋力・トレ</button>
+            <button class="tab-btn" onclick="switchTab('diet')">燃焼・代謝</button>
+            <button class="tab-btn" onclick="switchTab('brain')">脳・睡眠</button>
+            <button class="tab-btn" onclick="switchTab('care')">ケア・調整</button>
+        </div>
+        <div id="tab-base" class="tab-content active taken-grid"></div>
+        <div id="tab-perf" class="tab-content taken-grid"></div>
+        <div id="tab-diet" class="tab-content taken-grid"></div>
+        <div id="tab-brain" class="tab-content taken-grid"></div>
+        <div id="tab-care" class="tab-content taken-grid"></div>
+    </div>
+
+    <div class="section-title">安全性・体質チェック</div>
+    <div class="safety-grid">
+        <label class="check-card"><input type="checkbox" name="safety" value="hi_bp"> 高血圧気味</label>
+        <label class="check-card"><input type="checkbox" name="safety" value="insomnia"> 不眠傾向</label>
+        <label class="check-card"><input type="checkbox" name="safety" value="kidney"> 腎機能不安</label>
+        <label class="check-card"><input type="checkbox" name="safety" value="thyroid"> 甲状腺疾患</label>
+        <label class="check-card"><input type="checkbox" name="safety" value="meds"> 処方薬を服用中</label>
+        <label class="check-card"><input type="checkbox" name="safety" value="pill"> 低用量ピル服用</label>
+    </div>
+
+    <div class="disclaimer-box">
+        <div><b>【免責事項】</b> 本ツールは一般的な情報提供のみを目的としており、医療アドバイスではありません。摂取は自己責任で行ってください。</div>
+        <label style="display:flex; gap:10px; margin-top:10px; align-items:center; cursor:pointer;">
+            <input type="checkbox" id="agreeCheck"> 上記に同意して利用する
+        </label>
+    </div>
+
+    <button class="btn-analyze" id="btnAnalyze" disabled>スタック最適化 & 提案生成</button>
+
+    <div id="resultArea" class="result-area">
+        <div class="report-tools">
+            <button class="btn-tool" onclick="copyReport()">📋 レポートをコピー<br><span style="font-size:0.7em">(スマホ推奨)</span></button>
+            <button class="btn-tool" onclick="window.print()">🖨️ 印刷 / PDF保存<br><span style="font-size:0.7em">(PC/外部ブラウザ用)</span></button>
+        </div>
+        <div class="section-title">推奨摂取スケジュール</div>
+        <div id="timeline" class="timeline"></div>
+        
+        <div class="lane-container" id="laneAContainer">
+            <div class="lane-header"><span class="lane-badge lane-a-badge">Lane A</span> 現在のスタック (継続/調整)</div>
+            <div id="laneAContent"></div>
+        </div>
+        
+        <div class="lane-container" id="laneBContainer">
+            <div class="lane-header"><span class="lane-badge lane-b-badge">Lane B</span> 追加推奨サプリメント (Priority)</div>
+            <div id="laneBContent"></div>
+        </div>
+
+        <div class="lane-container" id="laneCContainer">
+            <div class="lane-header"><span class="lane-badge lane-c-badge">Lane C</span> 提案除外・見送り (参考/Top 3)</div>
+            <div id="laneCContent"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* --- CONFIG (Light Edition: No External Links/Branding) --- */
+    const safetyLabels = { hi_bp: "高血圧", insomnia: "不眠", kidney: "腎機能", thyroid: "甲状腺", meds: "服薬中", pill: "ピル服用" };
+    const triggerLabels = {
+        pump: "パンプ感", s_plateau: "筋力停滞", fatigue: "疲労回復", doms: "筋肉痛",
+        stress: "ストレス", sleep: "睡眠", w_plateau: "脂肪燃焼", stomach: "胃腸",
+        joint: "関節", hormone: "活力", skin: "肌・抗酸化", anemia: "貧血・冷え"
+    };
+
+    /* --- DB (Full 54 Items) --- */
+    const DB = [
+        // Tab 1: Base
+        { id: 'multivitamin', cat:'base', name: 'マルチビタミン', level:1, triggers:['fatigue','skin'], goalBonus:['maintenance'], timing:'morning', priority:6, dose:w=>`規定量`, pro:'微量栄養素の底上げ', pmid:'22987599' },
+        { id: 'vit_b', cat:'base', name: 'ビタミンB群', level:1, triggers:['fatigue','w_plateau','anemia'], goalBonus:['cutting'], timing:'morning', priority:8, dose:w=>`規定量`, pro:'糖質・脂質のエネルギー代謝', pmid:'31963141' },
+        { id: 'vit_d', cat:'base', name: 'ビタミンD3', level:1, triggers:['hormone','stress','joint'], goalBonus:['maintenance'], timing:'morning', priority:9, dose:w=>`2000-5000IU`, caution:'脂溶性', pro:'免疫、骨、メンタル', pmid:'21154195' },
+        { id: 'vit_c', cat:'base', name: 'ビタミンC', level:1, triggers:['skin','stress','fatigue','anemia'], goalBonus:['maintenance','cutting'], timing:'anytime', priority:8, dose:w=>`1000-2000mg`, pro:'抗酸化、鉄分吸収補助', pmid:'23927692' },
+        { id: 'vit_e', cat:'base', name: 'ビタミンE', level:2, triggers:['skin','hormone','anemia'], goalBonus:['maintenance'], timing:'with_meal', priority:6, dose:w=>`400IU`, caution:'脂溶性', pro:'血流改善、抗酸化', pmid:'27559512' },
+        { id: 'vit_k2', cat:'base', name: 'ビタミンK2', level:2, triggers:['joint','hormone'], goalBonus:['maintenance'], timing:'with_meal', priority:6, dose:w=>`100mcg`, pro:'カルシウム定着、骨密度', pmid:'23594657' },
+        { id: 'zinc', cat:'base', name: '亜鉛', level:1, triggers:['hormone','fatigue','skin'], goalBonus:['bulking'], timing:'before_sleep', priority:8, dose:w=>`15-30mg`, caution:'空腹時吐き気', pro:'細胞分裂、ホルモン合成', pmid:'8875519' },
+        { id: 'omega3', cat:'base', name: 'オメガ3 (EPA/DHA)', level:1, triggers:['joint','stress','skin'], goalBonus:['maintenance','cutting'], timing:'with_meal', priority:9, dose:w=>`2000-3000mg`, contra:'meds', pro:'抗炎症、血管保護', pmid:'21784145' },
+        { id: 'probiotics', cat:'base', name: 'プロバイオティクス', level:1, triggers:['stomach'], goalBonus:['maintenance'], timing:'morning', priority:6, dose:w=>`1-2カプセル`, pro:'腸内環境、消化吸収', pmid:'24912204' },
+        { id: 'digestive_enzymes', cat:'base', name: '消化酵素', level:1, triggers:['stomach'], goalBonus:['bulking'], timing:'with_meal', priority:5, dose:w=>`規定量`, pro:'栄養分解の補助', pmid:'29878239' },
+        { id: 'iron', cat:'base', name: '鉄分 (ヘム鉄)', level:1, triggers:['fatigue','anemia'], goalBonus:['maintenance'], timing:'with_meal', priority:6, dose:w=>`10-20mg`, genderOnly:'female', pro:'酸素運搬、貧血予防', pmid:'24914241' },
+        { id: 'nac', cat:'base', name: 'NAC (N-アセチルシステイン)', level:2, triggers:['fatigue','skin'], goalBonus:['maintenance'], timing:'with_meal', priority:5, dose:w=>`600-1200mg`, pro:'肝臓ケア、グルタチオン前駆体', pmid:'29742538' },
+        { id: 'coq10', cat:'base', name: 'コエンザイムQ10 (還元型)', level:2, triggers:['fatigue','skin'], goalBonus:['maintenance'], timing:'with_meal', priority:6, dose:w=>`100mg`, caution:'脂溶性', pro:'ミトコンドリア活性化', pmid:'20691130' },
+
+        // Tab 2: Perf
+        { id: 'creatine', cat:'perf', name: 'クレアチン', level:1, triggers:['s_plateau','pump'], goalBonus:['bulking'], timing:'post_workout', priority:10, dose:w=>`${Math.round(w*0.05)}g`, contra:'kidney', pro:'瞬発力、水分保持', pmid:'28615996' },
+        { id: 'eaa', cat:'perf', name: 'EAA (必須アミノ酸)', level:2, triggers:['fatigue','doms'], goalBonus:['bulking','cutting'], timing:'intra_workout', priority:7, dose:w=>`10-15g`, pro:'筋分解抑制、合成促進', pmid:'28919842' },
+        { id: 'hmb', cat:'perf', name: 'HMB', level:2, triggers:['doms','fatigue'], goalBonus:['cutting'], timing:'pre_workout', priority:1, dose:w=>`3000mg`, caution:'初心者に有効', pro:'抗カタボリック', pmid:'23241341' },
+        { id: 'beta_alanine', cat:'perf', name: 'ベータアラニン', level:2, triggers:['fatigue','s_plateau'], goalBonus:['bulking'], timing:'pre_workout', priority:7, dose:w=>`3.2g`, caution:'ピリピリ感', pro:'持久力、乳酸緩衝', pmid:'22270875' },
+        { id: 'citrulline', cat:'perf', name: 'L-シトルリン', level:1, triggers:['pump','doms','fatigue','anemia'], goalBonus:['bulking'], timing:'pre_workout', priority:9, dose:w=>`6000-8000mg`, caution:'低血圧注意', pro:'血管拡張、パンプ', pmid:'20386132' },
+        { id: 'sodium', cat:'perf', name: 'ナトリウム (塩分)', level:1, triggers:['pump','fatigue'], goalBonus:['bulking'], timing:'intra_workout', priority:8, dose:w=>`1000-2000mg`, contra:'hi_bp', pro:'血流量維持、攣り防止', pmid:'25916908' },
+        { id: 'beetroot', cat:'perf', name: 'ビートルート (硝酸塩)', level:2, triggers:['pump','fatigue','anemia'], goalBonus:['cutting'], timing:'pre_workout', priority:6, dose:w=>`300-500mg(NO3)`, pro:'有酸素持久力、NO産生', pmid:'23640589' },
+        { id: 'maltodextrin', cat:'perf', name: 'マルトデキストリン (粉飴)', level:1, triggers:['fatigue','s_plateau'], goalBonus:['bulking'], timing:'intra_workout', priority:7, dose:w=>`体重×0.5-1.0g`, pro:'即効性エネルギー源', pmid:'11591881' },
+        { id: 'betaine', cat:'perf', name: 'ベタイン (TMG)', level:2, triggers:['s_plateau','pump'], goalBonus:['bulking'], timing:'pre_workout', priority:5, dose:w=>`2500mg`, pro:'パワー出力、水分保持', pmid:'23967897' },
+        { id: 'taurine', cat:'perf', name: 'タウリン', level:2, triggers:['fatigue','pump'], goalBonus:['cutting'], timing:'pre_workout', priority:6, dose:w=>`1000-3000mg`, pro:'心機能、インスリン感受性', pmid:'24615238' },
+        { id: 'potassium', cat:'perf', name: 'カリウム', level:2, triggers:['pump','doms'], goalBonus:['bulking'], timing:'with_meal', priority:6, dose:w=>`食事で不足分`, caution:'腎機能注意', contra:'kidney', pro:'筋収縮、むくみ防止', pmid:'23107525' },
+        { id: 'glutamine', cat:'perf', name: 'L-グルタミン', level:1, triggers:['stomach','doms'], goalBonus:['bulking'], timing:'post_workout', priority:7, dose:w=>`5g`, pro:'免疫維持、グリコーゲン回復', pmid:'29462271' },
+
+        // Tab 3: Diet
+        { id: 'caffeine', cat:'diet', name: 'カフェイン', level:1, triggers:['w_plateau','fatigue'], goalBonus:['cutting'], timing:'pre_workout', priority:7, dose:w=>`${Math.round(w*3)}-${Math.round(w*5)}mg`, contra:'insomnia', pro:'脂肪燃焼、覚醒', pmid:'2912010' },
+        { id: 'carnitine', cat:'diet', name: 'L-カルニチン', level:2, triggers:['w_plateau'], goalBonus:['cutting'], timing:'pre_workout', priority:6, dose:w=>`2000mg`, pro:'脂肪酸輸送、ミトコンドリア', pmid:'29381391' },
+        { id: 'berberine', cat:'diet', name: 'ベルベリン', level:3, triggers:['w_plateau'], goalBonus:['cutting'], timing:'pre_meal', priority:6, dose:w=>`500mg`, contra:'meds', pro:'糖利用促進(GDA)', pmid:'18442638' },
+        { id: 'cla', cat:'diet', name: 'CLA (共役リノール酸)', level:2, triggers:['w_plateau'], goalBonus:['cutting'], timing:'with_meal', priority:4, dose:w=>`3000mg`, pro:'脂肪分解酵素活性化', pmid:'17490954' },
+        { id: 'fiber', cat:'diet', name: '食物繊維 (サイリウム等)', level:1, triggers:['stomach','w_plateau'], goalBonus:['cutting'], timing:'with_meal', priority:6, dose:w=>`5-10g`, pro:'血糖値抑制、満腹感', pmid:'28612143' },
+        { id: 'egcg', cat:'diet', name: 'EGCG (緑茶カテキン)', level:2, triggers:['w_plateau'], goalBonus:['cutting'], timing:'pre_workout', priority:5, dose:w=>`400-800mg`, pro:'代謝向上、脂肪酸化', pmid:'21115335' },
+        { id: 'chromium', cat:'diet', name: 'クロム', level:2, triggers:['w_plateau'], goalBonus:['cutting'], timing:'with_meal', priority:5, dose:w=>`200-400mcg`, pro:'インスリン感受性、食欲抑制', pmid:'15208835' },
+        { id: 'mct', cat:'diet', name: 'MCTオイル', level:2, triggers:['w_plateau','fatigue'], goalBonus:['cutting'], timing:'morning', priority:5, dose:w=>`5-15ml`, caution:'空腹時は腹痛注意', pro:'ケトン体生成、即効性燃料', pmid:'11880549' },
+        { id: 'ala', cat:'diet', name: 'アルファリポ酸 (ALA)', level:2, triggers:['w_plateau','skin'], goalBonus:['cutting'], timing:'with_meal', priority:5, dose:w=>`300-600mg`, pro:'糖代謝、強力な抗酸化', pmid:'21666939' },
+        { id: 'inulin', cat:'diet', name: 'イヌリン (水溶性食物繊維)', level:1, triggers:['stomach'], goalBonus:['maintenance'], timing:'with_meal', priority:5, dose:w=>`5-10g`, pro:'プレバイオティクス', pmid:'27178951' },
+
+        // Tab 4: Brain
+        { id: 'magnesium', cat:'brain', name: 'マグネシウム', level:1, triggers:['sleep','stress','doms'], goalBonus:['maintenance'], timing:'before_sleep', priority:9, dose:w=>`200-400mg`, contra:'kidney', pro:'リラックス、深睡眠', pmid:'23853635' },
+        { id: 'ashwagandha', cat:'brain', name: 'アシュワガンダ', level:3, triggers:['stress','hormone','sleep'], goalBonus:['bulking'], timing:'dinner', priority:7, dose:w=>`300-600mg`, contra:'thyroid', pro:'コルチゾール抑制', pmid:'23439798' },
+        { id: 'theanine', cat:'brain', name: 'L-テアニン', level:1, triggers:['stress','fatigue'], goalBonus:['maintenance'], timing:'pre_workout', priority:6, dose:w=>`200mg`, pro:'リラックス集中、カフェイン中和', pmid:'18681988' },
+        { id: 'tyrosine', cat:'brain', name: 'L-チロシン', level:2, triggers:['stress','fatigue'], goalBonus:['cutting'], timing:'pre_workout', priority:5, dose:w=>`1000-2000mg`, contra:'thyroid', pro:'ドーパミン原料、ストレス耐性', pmid:'26424423' },
+        { id: 'glycine', cat:'brain', name: 'グリシン', level:2, triggers:['sleep','skin'], goalBonus:['maintenance'], timing:'before_sleep', priority:6, dose:w=>`3000mg`, pro:'深部体温低下、入眠', pmid:'22293292' },
+        { id: 'melatonin', cat:'brain', name: 'メラトニン (※ホルモン)', level:2, triggers:['sleep'], goalBonus:['maintenance'], timing:'before_sleep', priority:5, dose:w=>`1-3mg`, caution:'少量から開始', pro:'入眠潜時短縮', pmid:'24558197' },
+        { id: 'rhodiola', cat:'brain', name: 'ロディオラ', level:2, triggers:['stress','fatigue'], goalBonus:['maintenance'], timing:'morning', priority:5, dose:w=>`200-400mg`, pro:'抗疲労、精神安定', pmid:'22228617' },
+        { id: 'ps', cat:'brain', name: 'ホスファチジルセリン', level:2, triggers:['stress','fatigue'], goalBonus:['cutting'], timing:'dinner', priority:6, dose:w=>`400-800mg`, pro:'コルチゾール抑制、脳機能', pmid:'18616866' },
+        { id: 'gaba', cat:'brain', name: 'GABA', level:1, triggers:['sleep','stress'], goalBonus:['maintenance'], timing:'before_sleep', priority:6, dose:w=>`100-200mg`, pro:'副交感神経優位、リラックス', pmid:'33066354' },
+        { id: 'alpha_gpc', cat:'brain', name: 'アルファGPC', level:3, triggers:['s_plateau','stress'], goalBonus:['bulking'], timing:'pre_workout', priority:5, dose:w=>`300-600mg`, pro:'成長ホルモン、瞬発力', pmid:'22673596' },
+        { id: 'tryptophan', cat:'brain', name: 'トリプトファン', level:2, triggers:['sleep','stress'], goalBonus:['maintenance'], timing:'before_sleep', priority:5, dose:w=>`500-1000mg`, contra:'meds', pro:'セロトニン・メラトニン材料', pmid:'20529608' },
+        { id: '5htp', cat:'brain', name: '5-HTP', level:3, triggers:['sleep','stress'], goalBonus:['cutting'], timing:'before_sleep', priority:5, dose:w=>`100-200mg`, contra:'meds', caution:'抗うつ薬併用厳禁', pro:'セロトニン直接生成', pmid:'9727088' },
+
+        // Tab 5: Care
+        { id: 'glucosamine', cat:'care', name: 'グルコサミン', level:1, triggers:['joint'], goalBonus:['maintenance'], timing:'with_meal', priority:6, dose:w=>`1500mg`, caution:'甲殻類アレルギー', pro:'関節軟骨保護', pmid:'16461376' },
+        { id: 'collagen', cat:'care', name: 'コラーゲン', level:1, triggers:['joint','skin'], goalBonus:['maintenance'], timing:'anytime', priority:6, dose:w=>`5-10g`, pro:'結合組織修復、肌弾力', pmid:'18416885' },
+        { id: 'curcumin', cat:'care', name: 'クルクミン (ウコン)', level:2, triggers:['joint','fatigue'], goalBonus:['maintenance'], timing:'with_meal', priority:6, dose:w=>`500mg`, pro:'強力な抗炎症、肝臓ケア', pmid:'23116312' },
+        { id: 'astaxanthin', cat:'care', name: 'アスタキサンチン', level:2, triggers:['skin','fatigue'], goalBonus:['maintenance'], timing:'with_meal', priority:5, dose:w=>`4-12mg`, pro:'眼精疲労、抗酸化', pmid:'22628205' },
+        { id: 'saw_palmetto', cat:'care', name: 'ノコギリヤシ', level:2, triggers:['hormone'], goalBonus:['maintenance'], timing:'with_meal', priority:4, dose:w=>`320mg`, genderOnly:'male', pro:'前立腺ケア、DHT抑制', pmid:'23253636' },
+        { id: 'soy_iso', cat:'care', name: '大豆イソフラボン', level:2, triggers:['hormone','skin'], goalBonus:['maintenance'], timing:'with_meal', priority:4, dose:w=>`40-75mg`, genderOnly:'female', caution:'ピル服用時は注意', pro:'女性ホルモン様作用', pmid:'12163983' },
+        { id: 'boron', cat:'care', name: 'ホウ素 (Boron)', level:3, triggers:['hormone'], goalBonus:['bulking'], timing:'with_meal', priority:5, dose:w=>`3-10mg`, caution:'ピル服用時は注意', pro:'遊離テストステロン増加', pmid:'21129261' },
+        { id: 'maca', cat:'care', name: 'マカ', level:1, triggers:['hormone','fatigue'], goalBonus:['maintenance'], timing:'morning', priority:5, dose:w=>`1500-3000mg`, caution:'ホルモン作用に注意', pro:'滋養強壮', pmid:'19781622' }
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        DB.forEach(s => {
+            const c = document.getElementById(`tab-${s.cat}`);
+            const disabledAttr = s.cat === 'base' ? '' : 'disabled';
+            if(c) c.innerHTML += `<label class="check-card taken-card"><input type="checkbox" name="taken" value="${s.id}" ${disabledAttr}> ${s.name}</label>`;
+        });
+        loadSettings();
+        document.getElementById('agreeCheck').addEventListener('change', function() {
+            document.getElementById('btnAnalyze').disabled = !this.checked;
+        });
+        document.getElementById('btnAnalyze').addEventListener('click', analyze);
+    });
+
+    function switchTab(cat) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(`tab-${cat}`).classList.add('active');
+    }
+
+    function loadSettings() {
+        const saved = JSON.parse(localStorage.getItem('suppOracle_user') || '{}');
+        if(saved.weight) document.getElementById('weight').value = saved.weight;
+        if(saved.gender) document.getElementById('gender').value = saved.gender;
+        if(saved.history) document.getElementById('history').value = saved.history;
+        if(saved.goal) document.getElementById('goal').value = saved.goal;
+    }
+
+    function analyze() {
+        const w = document.getElementById('weight').value;
+        localStorage.setItem('suppOracle_user', JSON.stringify({
+            weight: w,
+            gender: document.getElementById('gender').value,
+            history: document.getElementById('history').value,
+            goal: document.getElementById('goal').value
+        }));
+
+        const weight = parseFloat(w) || 70;
+        const gender = document.getElementById('gender').value;
+        const history = document.getElementById('history').value;
+        const goal = document.getElementById('goal').value;
+        const pains = Array.from(document.querySelectorAll('input[name="pain"]:checked')).map(c => c.value);
+        const takens = Array.from(document.querySelectorAll('input[name="taken"]:checked')).map(c => c.value);
+        const safeties = Array.from(document.querySelectorAll('input[name="safety"]:checked')).map(c => c.value);
+        const maxDisplay = parseInt(document.getElementById('maxDisplay').value);
+        const threshold = parseInt(document.getElementById('scoreThreshold').value);
+
+        if(pains.length === 0 && takens.length === 0) {
+            alert("悩み、または摂取中のサプリを選択してください。"); return;
+        }
+
+        let results = DB.map(s => {
+            if (s.genderOnly && s.genderOnly !== gender) return null;
+            let score = 0;
+            let matchLogs = [];
+            let warnings = [];
+
+            // Trigger Match
+            s.triggers.forEach(t => {
+                if(pains.includes(t)) {
+                    let pts = 20;
+                    if(t === 'pump') pts = 40; 
+                    if(t === 'anemia') pts = 30;
+                    if(t === 'w_plateau' && s.id === 'carnitine') pts = 35;
+                    score += pts; 
+                    matchLogs.push(triggerLabels[t] || t);
+                }
+            });
+
+            // Bonus
+            if(s.goalBonus && s.goalBonus.includes(goal)) {
+                score += 15; matchLogs.push(`目的一致`);
+            }
+
+            // Level & HMB Logic
+            const level = s.level || 1;
+            score += (s.priority * 3);
+            if(s.id === 'hmb') {
+                if(history === 'beginner' && goal === 'cutting') score += 5; 
+                else score -= 20; 
+            } else {
+                if(history === 'beginner' && level >= 2) score -= 20;
+                if(history === 'advanced' && level >= 2) score += 15;
+            }
+
+            // Safety Checks
+            if(s.contra && safeties.includes(s.contra)) {
+                score = -9999; warnings.push(`⚠️ 禁忌: ${safetyLabels[s.contra]}`);
+            }
+            if(safeties.includes('meds')) {
+                if(['omega3','ashwagandha','vit_d','berberine','5htp','tryptophan','ginkgo'].includes(s.id)) {
+                    if(takens.includes(s.id)) warnings.push('⚠️ 薬との飲み合わせ確認が必要');
+                    else score = -9999; 
+                }
+            }
+            if(safeties.includes('pill')) {
+                 if(['maca','soy_iso','boron'].includes(s.id)) {
+                     score -= 50; warnings.push('⚠️ ピルとの併用は医師に要相談');
+                 }
+            }
+            if(safeties.includes('insomnia') && s.id === 'caffeine') warnings.push('⚠️ 不眠悪化リスク');
+            if(safeties.includes('hi_bp') && s.id === 'sodium') warnings.push('⚠️ 血圧上昇リスク');
+
+            if(pains.length > 0) score = score / (1 + (Math.log(pains.length + 1) * 0.5));
+
+            let rejectReason = "";
+            if(score <= -100) rejectReason = "安全上の理由/禁忌により除外";
+            else if(score < threshold) rejectReason = "現在の悩み・目的への関連性低";
+
+            return { ...s, finalScore: score, matchLogs, warnings, rejectReason, isTaken: takens.includes(s.id), calcDose: s.dose(weight) };
+        }).filter(x => x !== null);
+
+        const takenItems = results.filter(d => d.isTaken);
+        
+        let recItems = results.filter(d => !d.isTaken && d.finalScore >= threshold && d.cat === 'base');
+        if (recItems.length === 0) recItems = results.filter(d => !d.isTaken && d.finalScore > 0 && d.cat === 'base');
+        recItems.sort((a,b) => b.finalScore - a.finalScore);
+
+        let rejectedItems = results.filter(d => !d.isTaken && d.finalScore < threshold && d.cat === 'base');
+        rejectedItems.sort((a,b) => {
+             if(a.finalScore < -100 && b.finalScore > -100) return -1;
+             if(a.finalScore > -100 && b.finalScore < -100) return 1;
+             return b.finalScore - a.finalScore;
+        });
+        const displayRejected = rejectedItems.slice(0, 3);
+
+        document.getElementById('resultArea').style.display = 'block';
+        const lA = document.getElementById('laneAContent');
+        const lB = document.getElementById('laneBContent');
+        const lC = document.getElementById('laneCContent');
+        lA.innerHTML = ''; lB.innerHTML = ''; lC.innerHTML = '';
+
+        if(takenItems.length > 0) takenItems.forEach(i => lA.innerHTML += createCard(i, 'a'));
+        else lA.innerHTML = '<div style="padding:20px; text-align:center; color:#64748b; background:#f1f5f9; border-radius:8px;">選択なし</div>';
+
+        const displayItems = recItems.slice(0, maxDisplay);
+        if(displayItems.length > 0) displayItems.forEach(i => lB.innerHTML += createCard(i, 'b'));
+        else lB.innerHTML = '<div style="padding:20px; text-align:center; color:#64748b; background:#f1f5f9; border-radius:8px;">条件に合う提案がありません</div>';
+
+        if(displayRejected.length > 0) displayRejected.forEach(i => lC.innerHTML += createCard(i, 'c'));
+        else lC.innerHTML = '<div style="padding:10px; font-size:0.8rem; color:#94a3b8;">特記事項なし</div>';
+
+        renderTimeline([...takenItems, ...displayItems]);
+        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function createCard(item, lane) {
+        const warnHtml = item.warnings.length > 0 ? 
+            `<div style="margin-top:10px; padding:8px; background:#fef2f2; color:#ef4444; border-radius:6px; font-weight:bold; font-size:0.8rem;">${item.warnings.join('<br>')}</div>` : '';
+        
+        let scoreBadge = '';
+        if(lane === 'b') {
+            const sc = Math.round(item.finalScore);
+            const cl = sc >= 80 ? 'score-high' : (sc >= 50 ? 'score-mid' : 'score-low');
+            scoreBadge = `<div class="score-badge ${cl}">${sc}</div>`;
+        } else if(lane === 'a') {
+            scoreBadge = `<div class="supp-score" style="color:#059669; background:#ecfdf5; font-weight:bold;">継続中</div>`;
+        } else if(lane === 'c') {
+            scoreBadge = `<div class="supp-score" style="color:#64748b;">除外</div>`;
+        }
+
+        let reasons = item.matchLogs.length > 0 ? item.matchLogs.join(', ') : '基礎/目的';
+        if(lane === 'c') reasons = `<span style="color:#ef4444;">${item.rejectReason}</span>`;
+
+        const tMap = { pre_workout:'トレ前', intra_workout:'トレ中', post_workout:'トレ後', morning:'朝', with_meal:'食後', pre_meal:'食前', before_sleep:'就寝前', dinner:'夕食後', anytime:'自由' };
+        
+        const pubLink = (item.pmid && lane !== 'c') ? `<div style="margin-top:8px; text-align:right; font-size:0.75rem;"><a href="https://pubmed.ncbi.nlm.nih.gov/${item.pmid}/" target="_blank" class="pubmed-link">PubMed Evidence ↗</a></div>` : '';
+
+        return `
+            <div class="detail-card card-lane-${lane} ${item.warnings.length > 0 ? 'warning' : ''}">
+                <div class="card-top">
+                    <div class="supp-name" style="${lane==='c'?'color:#64748b;':''}">${item.name}</div>
+                    ${scoreBadge}
+                </div>
+                <div class="reason-row">理由: ${reasons}</div>
+                ${lane !== 'c' ? `
+                <div class="info-row" style="margin-top:5px;"><span class="info-label">目的</span><span class="info-val">${item.pro}</span></div>
+                <div class="info-row"><span class="info-label">推奨量</span><span class="info-val" style="font-weight:bold;">${item.calcDose}</span></div>
+                <div class="info-row"><span class="info-label">摂取</span><span class="info-val">${tMap[item.timing]||item.timing}</span></div>
+                ` : ''}
+                ${warnHtml}
+                ${pubLink}
+            </div>`;
+    }
+
+    function renderTimeline(items) {
+        const slots = {};
+        const order = ['morning', 'pre_meal', 'with_meal', 'pre_workout', 'intra_workout', 'post_workout', 'dinner', 'before_sleep', 'anytime'];
+        order.forEach(k => slots[k] = []);
+        const labels = { morning:'朝', pre_meal:'食前', with_meal:'食後', pre_workout:'トレ前', intra_workout:'トレ中', post_workout:'トレ後', dinner:'夕食後', before_sleep:'就寝前', anytime:'自由' };
+        items.forEach(it => { if(slots[it.timing]) slots[it.timing].push(`<span class="supp-pill ${it.isTaken ? 'pill-take' : 'pill-add'}">${it.name}</span>`); });
+        const tlDiv = document.getElementById('timeline');
+        tlDiv.innerHTML = '';
+        order.forEach(k => {
+            if(slots[k].length > 0) tlDiv.innerHTML += `<div class="time-slot"><div class="time-label">${labels[k]}</div><div class="time-content">${slots[k].join('')}</div></div>`;
+        });
+    }
+
+    function copyReport() {
+        const lA = document.getElementById('laneAContent').innerText;
+        const lB = document.getElementById('laneBContent').innerText;
+        const tl = document.getElementById('timeline').innerText.replace(/\n/g, ' ');
+        const t = `【サプリメント提案レポート】\n\n[摂取中スタック]\n${lA}\n\n[追加推奨]\n${lB}\n\n[スケジュール]\n${tl}\n\n※医療アドバイスではありません。`;
+        navigator.clipboard.writeText(t).then(() => alert('レポートをコピーしました'));
+    }
+</script>
+</body>
+</html>
